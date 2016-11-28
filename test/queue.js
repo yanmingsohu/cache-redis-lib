@@ -5,8 +5,41 @@ for (var i=0; i<2; ++i) {
   //testGroup(i);
   testQueue(i);
 }
+testChannel();
 
-// 使用定义好的消息函数
+// 通道消息
+function testChannel() {
+  var name = 'he';
+  var client = redis.createClient();
+  
+  client.tsubcount(name, function(a,b) {
+    console.log(a,b);
+  });
+
+  var handle = client.tsubscribe(name, function(err, msg) {
+    console.log('recv', err || msg);
+  }); 
+
+  var a = 0;
+  var tid = setInterval(function() {
+    console.log('send', name, a);
+    client.tsend(name, a);
+    ++a;
+    if (a >= 10) {
+      handle.end();
+      clearInterval(tid);
+      client.end();
+      return;
+    }
+    if (a %2 == 0) {
+      handle.pause();
+    } else {
+      handle.start();
+    }
+  }, 100); 
+}
+
+// 使用定义好的队列消息函数
 function testQueue(msg) {
   var client = redis.createClient();
   var name = 'aa' + msg;
