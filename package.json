@@ -1,6 +1,6 @@
 {
     "name": "cache-redis-lib",
-    "version": "0.2.8",
+    "version": "0.2.12",
     "description": "缓存组件",
     "main": "index.js",
     "scripts": {
