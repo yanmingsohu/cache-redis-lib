@@ -7,22 +7,24 @@ for (var i=0; i<2; ++i) {
 }
 testChannel();
 
+
 // 通道消息
 function testChannel() {
   var name = 'he';
   var client = redis.createClient();
-  
-  client.tsubcount(name, function(a,b) {
+  var cli2   = redis.createClient();
+
+  cli2.tsubcount(name, function(a,b) {
     console.log(a,b);
   });
 
-  var handle = client.tsubscribe(name, function(err, msg) {
-    console.log('recv', err || msg);
-  }); 
+  var handle = cli2.tsubscribe(name, function(err, msg) {
+    console.log('c recv', err || msg);
+  });
 
   var a = 0;
   var tid = setInterval(function() {
-    console.log('send', name, a);
+    console.log('c send', name, a);
     client.tsend(name, a);
     ++a;
     if (a >= 10) {
@@ -36,36 +38,43 @@ function testChannel() {
     } else {
       handle.start();
     }
-  }, 100); 
+  }, 100);
 }
+
 
 // 使用定义好的队列消息函数
 function testQueue(msg) {
   var client = redis.createClient();
+  var recvc  = redis.createClient();
   var name = 'aa' + msg;
-  
-  var handle = client.fsubscribe(name, function(err, d) {
+
+  var handle = recvc.fsubscribe(name, function(err, d) {
     if (err) {
-      console.log(name, "E:", err);
+      console.log('q', name, "E:", err);
     } else {
-      console.log(name, "D:", d);
+      console.log('q', name, "D:", d);
     }
   });
-  
+
   var a = 1;
-  setInterval(function() {
-    console.log('send', name, a);
+  var tid = setInterval(function() {
+    console.log('q send', name, a);
     client.fsend(name, a);
-    ++a;
-  }, 2000); 
+    if (++a > 10) {
+      clearInterval(tid);
+      client.end();
+      handle.end();
+    }
+  }, 200);
 }
+
 
 // 使用命令模拟消息
 function testGroup(msg) {
   var csend = redis.createClient();
   var crecv = redis.createClient();
   a1();
-  
+
   function a1() {
     waitfor('a' + msg, a1);
   }
